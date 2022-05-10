@@ -1,0 +1,28 @@
+- unix系OSのユーザ設定
+- いろいろ覚え書き
+の置き場
+
+* 設定の適用方法
+適当なディレクトリで
+#+begin_src bash
+  git clone https://github.com/yam-k/dotfiles.git
+  cd dotfiles
+  make install
+#+end_src
+とすれば、 =src/= にあるファイルへのシンボリックリンクを =$HOME= に作成
+する。
+この時、既に同名のファイルがあれば、 =.original= を付して保存する。
+1. =src/= にあるファイルと同名のファイルが =$HOME= にあれば、
+   =.original= を付けてリネーム
+2. =$HOME= にシンボリックリンクを作成
+という動作なので、続けて2回以上実行すると元々の設定は永遠に消失する。
+
+* 設定を解除する方法
+#+begin_src bash
+  cd <"git clone" を実行したディレクトリ>/dotfiles/
+  make uninstall
+#+end_src
+で設定を削除できる。
+1. =src/= にあるファイルと同名のファイルが =$HOME= にあれば削除
+2. =$HOME= に =.original= があれば =.original= を取ったファイル名にする
+という動作なので、無闇に実行すると元々の設定も消してしまうので注意。

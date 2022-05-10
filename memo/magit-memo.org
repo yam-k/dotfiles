@@ -1,0 +1,179 @@
+#+title: magitでgithubにアクセスするメモ
+#+author: yam-k
+#+language: ja
+
+* ssh鍵の作成と登録
+** ssh鍵を作る
+shellで以下のコマンドを実行する。
+#+begin_src bash
+  ssh-keygen -t ed25519 -C "<github登録メールアドレス>"
+#+end_src
+
+- -t :: 暗号化方式を指定する。
+  指定できるのは、 =dsa= 、 =ecdsa= 、 =ecdsa-sk= 、 =ed25519= 、
+  =ed25519-sk= 、 =rsa= 。
+  =-sk= が付いている形式は、物理的なセキュリティキーを併用する場合のもの
+  らしい。
+- -C :: 鍵に埋め込むコメント。
+  githubのヘルプでは、登録メールアドレスを指定するように誘導している。
+
+コマンドを実行すると、
+#+begin_example
+  Enter file in which to save the key ($HOME/.ssh/id_ed25519):
+#+end_example
+と表示されるので、作成したいファイル名をパス込みで入力する。
+ファイル名だけを入力すると、 =ssh-keygen= を実行したフォルダに鍵が作成さ
+れる。
+
+次に、
+#+begin_example
+  Enter passphrase (empty for no passphrase): 
+#+end_example
+と表示される。
+鍵の照合時に要求するパスワードを入力する。
+何も入力しなければパスワード無しで接続できるが、githubではパスワードを設
+定することが推奨されている。
+
+パスワードを入力すると、次に
+#+begin_example
+  Enter same passphrase again: 
+#+end_example
+と表示されてパスワードの再入力を要求されるので、先程と同じパスワードをも
+う一度入力する。
+
+以上のステップを経ると、入力したファイル名と同じファイルと、入力したファ
+イル名に =.pub= を付したファイルとが作成される。
+前者が秘密鍵で、後者(=.pub= 付き)が公開鍵。
+
+** 公開鍵のgithubへの登録
+1. ログインしたgithubの右上にあるアバターをクリックして、ポップアップす
+   るメニューから、「Settings」を選択する。
+2. 設定項目から、「SSH and GPG keys」を選択する。
+3. 「New SSH key」ボタンをクリックする。
+4. 「Title」に適当な名前を、「Key」に、ターミナルで
+    =cat ~/.ssh/id_ed25519.pub= を実行した結果を貼り付ける。
+5. 「Add SSH key」ボタンをクリックする。
+
+手順4で秘密鍵を貼り付けないように注意。
+
+公開鍵は
+#+begin_example
+  <暗号化方式> <鍵文字列> <コメント>
+#+end_example
+の形式になっている。
+例えば
+#+begin_example
+  ssh-ed25519 a1b2c3A9B8C7 foo@bar.baz
+#+end_example
+など。
+
+秘密鍵は、 =-----BEGIN OPENSSH PRIVATE KEY-----= と
+=-----END OPENSSH PRIVATE KEY-----= に挟まれて鍵文字列が表示される。
+例えば
+#+begin_example
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  zaq1xsw2cde3vfr4bgt5nhy6mju7ki8lo9p
+  plo9ki8mju7nhy6bgt5vfr4cde3xsw2zaq1
+  1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik9olp
+  -----END OPENSSH PRIVATE KEY-----
+#+end_example
+など。
+
+* sshの設定
+** ~/.ssh/configの編集
+適当なエディタで、次のように書いた ="~/.ssh/config"= を作成する。
+#+begin_src ssh-config
+  HOST github github.com
+    HostName github.com
+    User git
+    IdentityFile <秘密鍵>
+    IdentitiesOnly yes
+#+end_src
+
+- HOST :: 接続するホストの別名。
+  =ssh git@github.com= の代わりに =ssh github= や =ssh github.com= で接
+  続できるようになる。
+  ここに =github.com= を書いておかないと、magitで
+   =git@github.com:<ユーザ名>/<リポジトリ名>.git= としても接続できなかっ
+   た。
+- HostName :: IPアドレスまたはホスト名。
+  githubに接続する際に =<User>@<Hostname>:<ユーザ名>/<リポジトリ名>.git=
+  に展開される。
+- User :: ログインユーザ。
+  githubに接続する際に =<User>@<Hostname>:<ユーザ名>/<リポジトリ名>.git=
+  に展開される。
+- IdentityFile :: 秘密鍵のパス。
+  フルパスで指定する。
+  ("=/home/foo/.ssh/id_ed25519="とか"=~/.ssh/id_e25519="とか。)
+- IdentitiesOnly :: IdentityFileで指定した秘密鍵のみを使うかどうかを、
+  =yes= (指定した鍵のみ)、 =no= (指定した鍵のみじゃない)で指定する。
+
+** 接続確認
+以下のコマンドをターミナルで実行する。
+#+begin_src bash
+  ssh github
+#+end_src
+ssh鍵にパスワードを設定している場合は、入力を求められるので入力する。
+
+以下のメッセージが表示されれば、ssh経由でのgithubへの接続は成功。
+#+begin_example
+  Hi <ユーザ名>! You've successfully authenticated, but GitHub does not provide shell access.
+  Connection to github.com closed.
+#+end_example
+
+* magitの使い方
+** ざっくり
+1. =M-x magit-status=
+2. 「Untracked files」や「Unstaged changes」からgit管理したい/更新したい
+   ファイルを選択して"=s="。git管理したくないファイルは、そのファイルを
+   選択して"=i s="。
+3. "=c c="でローカルリポジトリにコミット。
+4. "=P p="でgithubにプッシュ。
+
+** 初回起動
+初めてmagitを起動した時は、gitの設定をする必要がある。
+
+"=:=" を押すと、エコーエリアに
+#+begin_example
+Async shell command in <リポジトリ>: git
+#+end_example
+というプロンプトが表示されるので、以下を入力する。
+("git "はプロンプトに表示されているので、"config"以下を入力。)
+#+begin_example
+git config --global user.email "your@email.address"
+#+end_example
+
+エラーが表示されなければ、もう一度"=:="を押して、
+#+begin_example
+git config --global user.name "Your Name"
+#+end_example
+を入力する。
+
+設定は =~/.gitconfig= に記録される。
+
+** リポジトリの初回接続
+初めてリポジトリに接続する時は
+- magitへのgithubの登録
+- ブランチ名の変更
+をする必要がある。
+
+*** magitへのgithubの登録
+"=M a=を入力すると、エコーエリアに
+#+begin_example
+  Remote name:
+#+end_example
+と表示されるので、magit上で使う任意の名前を入力する。
+
+次に、
+#+begin_example
+  Remote url:
+#+end_example
+と表示されるので、
+#+begin_example
+  github:<ユーザ名>/<リポジトリ名>.git
+#+end_example
+を入力する。
+
+** ローカルリポジトリの操作
+
+** githubの操作
