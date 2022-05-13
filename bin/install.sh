@@ -5,8 +5,10 @@ SRC_DIR=$(cd $BIN_DIR/../src; pwd)
 SRCS=$(cd $SRC_DIR; ls -A)
 
 for SRC in $SRCS; do
-    if [ ! -e $HOME/$SRC.original ]; then
-        mv $HOME/$SRC $HOME/$SRC.original
+    if [ -e $HOME/$SRC ]; then
+        if [ ! -e $HOME/$SRC.original ]; then
+            mv $HOME/$SRC $HOME/$SRC.original
+        fi
     fi
     ln -s $SRC_DIR/$SRC $HOME/$SRC
 done
