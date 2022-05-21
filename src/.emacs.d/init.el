@@ -1,4 +1,4 @@
-;;; init.el --- my emacs settings.
+;;; init.el --- my emacs settings. -*- eval: (outline-hide-body) -*-
 
 ;;; Commentary:
 ;; emacsの設定ファイル
@@ -7,10 +7,9 @@
 (package-initialize) ;パッージシステムの起動
 
 ;; package-archivesにmelpaを追加
-(customize-set-variable
- 'package-archives
- (cons '("melpa" . "https://melpa.org/packages/")
-       package-archives))
+(setq package-archives
+      (cons '("melpa" . "https://melpa.org/packages/")
+            package-archives))
 
 ;; use-packageがインストールされていなければ多分初回起動なので、必須パッ
 ;; ケージとorgの最新版をインストール。
@@ -198,8 +197,6 @@
              (("\\`C-c y\\'" . nil) . (nil . "yasnippet")))
            which-key-replacement-alist))
   )
-
-
 (use-package vertico
   :ensure t
   :custom
@@ -275,6 +272,58 @@
 
 
 ;;; Editing Support:
+(setq skk-user-directory
+      (expand-file-name "skk" user-emacs-directory)
+      skk-get-jisyo-directory
+      (expand-file-name "skk-jisyo" skk-user-directory))
+(use-package skk
+  :ensure ddskk
+  :blackout t
+  :config
+  (unless (file-exists-p skk-get-jisyo-directory)
+      (skk-get skk-get-jisyo-directory))
+
+  :hook
+  (isearch-mode . skk-isearch-mode-setup)
+  (isearch-mode-end . skk-isearch-mode-cleanup)
+
+  :custom
+  (default-input-method "japanese-skk")
+  (skk-use-jisx0201-input-method t)
+  (skk-search-katakana 'jisx0201-kana)
+
+  (skk-large-jisyo (expand-file-name "SKK-JISYO.L"
+                                     skk-get-jisyo-directory))
+  (skk-itaiji-jisyo (expand-file-name "SKK-JISYO.itaiji"
+                                      skk-get-jisyo-directory))
+
+  (skk-show-annotation t)
+  (skk-show-annotation-delay 0)
+
+  (skk-show-mode-show t)
+  (skk-show-mode-style 'inline)
+
+  (skk-latin-mode-string "[_A]")
+  (skk-hiragana-mode-string "[あ]")
+  (skk-katakana-mode-string "[ア]")
+  (skk-jisx0208-latin-mode-string "[Ａ]")
+  (skk-jisx0201-mode-string "[_ｱ]")
+  (skk-abbrev-mode-string "[aA]")
+
+  (skk-isearch-mode-enable 'always)
+  (skk-isearch-start-mode 'latin)
+
+  (skk-henkan-show-candidates-keys '(?a ?s ?d ?f ?g ?h ?j))
+  (skk-delete-okuri-when-quit t)
+  )
+(use-package ddskk-posframe
+  :ensure t
+  :blackout t
+  :custom
+  (ddskk-posframe-mode t)
+  )
+
+
 (use-package company
   :ensure t
   :blackout t
@@ -353,7 +402,6 @@
   )
 (use-package outline-magic
   :ensure t
-  :defer t
   )
 
 
@@ -501,26 +549,26 @@
   )
 
 
-(use-package rust-mode
-  :ensure t
-  :defer t
+;; (use-package rust-mode
+;;   :ensure t
+;;   :defer t
 
-  :custom
-  (rust-format-on-save t)
-  )
-(use-package rustic
-  :ensure t
-  :defer t
-  :custom
-  (rustic-lsp-client nil)
-  (rustic-display-spinner 'moon)
-  )
-(use-package toml-mode
-  :ensure t
-  :defer t
-  :mode
-  ("\\.toml\\'" . toml-mode)
-  )
+;;   :custom
+;;   (rust-format-on-save t)
+;;   )
+;; (use-package rustic
+;;   :ensure t
+;;   :defer t
+;;   :custom
+;;   (rustic-lsp-client nil)
+;;   (rustic-display-spinner 'moon)
+;;   )
+;; (use-package toml-mode
+;;   :ensure t
+;;   :defer t
+;;   :mode
+;;   ("\\.toml\\'" . toml-mode)
+;;   )
 
 
 ;;; Development Environment:
@@ -674,11 +722,10 @@
                             ([?\s-w] . exwm-workspace-switch)))
 
   :config
-  (customize-set-variable 'menu-bar-mode nil)
-  (customize-set-variable 'tool-bar-mode nil)
-  (customize-set-variable 'scroll-bar-mode nil)
-
-  (customize-set-variable 'use-dialog-box nil)
+  (setq menu-bar-mode nil
+        tool-bar-mode nil
+        scroll-bar-mode nil
+        use-dialog-box nil)
 
   (require 'exwm-systemtray)
   (exwm-systemtray-enable)
@@ -699,10 +746,10 @@
   :config
   (exwmx-floating-smart-hide)
   (exwmx-button-enable)
-  (customize-set-variable 'exwm-input-prefix-keys
-                          (append '(?\C-t
-                                    ?\C-q)
-                                  exwm-input-prefix-keys))
+  (setq exwm-input-prefix-keys
+        (append '(?\C-t
+                  ?\C-q)
+                exwm-input-prefix-keys))
   (define-key global-map (kbd "C-t") nil)
   (exwmx-input-set-key (kbd "C-t ;") #'exwmx-dmenu)
   (exwmx-input-set-key (kbd "C-t :") #'exwmx-appmenu-simple)
@@ -726,6 +773,5 @@
   (exwmx-input-set-key (kbd "C-t C-f") #'exwmx-floating-toggle-floating)
   (exwm-enable)
   )
-
 
 ;;; init.el ends here
