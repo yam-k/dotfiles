@@ -272,56 +272,65 @@
 
 
 ;;; Editing Support:
-(setq skk-user-directory
-      (expand-file-name "skk" user-emacs-directory)
-      skk-get-jisyo-directory
-      (expand-file-name "skk-jisyo" skk-user-directory))
-(use-package skk
-  :ensure ddskk
-  :blackout t
-  :config
-  (unless (file-exists-p skk-get-jisyo-directory)
-      (skk-get skk-get-jisyo-directory))
+;; (setq skk-user-directory
+;;       (expand-file-name "skk" user-emacs-directory)
+;;       skk-get-jisyo-directory
+;;       (expand-file-name "skk-jisyo" skk-user-directory))
+;; (use-package skk
+;;   :ensure ddskk
+;;   :blackout t
+;;   :config
+;;   (unless (file-exists-p skk-get-jisyo-directory)
+;;       (skk-get skk-get-jisyo-directory))
 
-  :hook
-  (isearch-mode . skk-isearch-mode-setup)
-  (isearch-mode-end . skk-isearch-mode-cleanup)
+;;   :hook
+;;   (isearch-mode . skk-isearch-mode-setup)
+;;   (isearch-mode-end . skk-isearch-mode-cleanup)
 
-  :custom
-  (default-input-method "japanese-skk")
-  (skk-use-jisx0201-input-method t)
-  (skk-search-katakana 'jisx0201-kana)
+;;   :custom
+;;   (default-input-method "japanese-skk")
+;;   (skk-use-jisx0201-input-method t)
+;;   (skk-search-katakana 'jisx0201-kana)
 
-  (skk-large-jisyo (expand-file-name "SKK-JISYO.L"
-                                     skk-get-jisyo-directory))
-  (skk-itaiji-jisyo (expand-file-name "SKK-JISYO.itaiji"
-                                      skk-get-jisyo-directory))
+;;   (skk-large-jisyo (expand-file-name "SKK-JISYO.L"
+;;                                      skk-get-jisyo-directory))
+;;   (skk-itaiji-jisyo (expand-file-name "SKK-JISYO.itaiji"
+;;                                       skk-get-jisyo-directory))
 
-  (skk-show-annotation t)
-  (skk-show-annotation-delay 0)
+;;   (skk-show-annotation t)
+;;   (skk-show-annotation-delay 0)
 
-  (skk-show-mode-show t)
-  (skk-show-mode-style 'inline)
+;;   (skk-show-mode-show t)
+;;   (skk-show-mode-style 'inline)
 
-  (skk-latin-mode-string "[_A]")
-  (skk-hiragana-mode-string "[あ]")
-  (skk-katakana-mode-string "[ア]")
-  (skk-jisx0208-latin-mode-string "[Ａ]")
-  (skk-jisx0201-mode-string "[_ｱ]")
-  (skk-abbrev-mode-string "[aA]")
+;;   (skk-latin-mode-string "[_A]")
+;;   (skk-hiragana-mode-string "[あ]")
+;;   (skk-katakana-mode-string "[ア]")
+;;   (skk-jisx0208-latin-mode-string "[Ａ]")
+;;   (skk-jisx0201-mode-string "[_ｱ]")
+;;   (skk-abbrev-mode-string "[aA]")
 
-  (skk-isearch-mode-enable 'always)
-  (skk-isearch-start-mode 'latin)
+;;   (skk-isearch-mode-enable 'always)
+;;   (skk-isearch-start-mode 'latin)
 
-  (skk-henkan-show-candidates-keys '(?a ?s ?d ?f ?g ?h ?j))
-  (skk-delete-okuri-when-quit t)
-  )
-(use-package ddskk-posframe
-  :ensure t
-  :blackout t
-  :custom
-  (ddskk-posframe-mode t)
-  )
+;;   (skk-delete-okuri-when-quit t)
+;;   ;; fcitx5-skkにあわせた設定
+;;   ;; (skk-henkan-show-candidates-keys '(?a ?s ?d ?f ?g ?h ?j))
+
+;;   (skk-show-tooltip t)
+;;   (skk-tooltip-function '(lambda (tooltip-str)
+;;                            (pos-tip-show tooltip-str nil nil nil 0)))
+
+;;   ;; :custom-face
+;;   ;; (tooltip ((t (:inherit default :background "white"))))
+;;   )
+;; ;; ウィンドウシステムがGNOME以外の時
+;; ;; (use-package ddskk-posframe
+;; ;;   :ensure t
+;; ;;   :blackout t
+;; ;;   :custom
+;; ;;   (ddskk-posframe-mode t)
+;; ;;   )
 
 
 (use-package company
@@ -349,6 +358,15 @@
   (company-selection-wrap-around t)
   (company-idle-delay 0.5)
   )
+(use-package company-quickhelp
+  :ensure t
+  :bind
+  (:map company-active-map
+        ("C-c h" . company-quickhelp-manual-begin))
+
+  :custom
+  (company-quickhelp-mode t)
+  )
 
 
 (use-package flycheck
@@ -358,8 +376,11 @@
   (flycheck-keymap-prefix (kbd "C-c f"))
   (global-flycheck-mode t)
   )
-
-
+(use-package flycheck-pos-tip
+  :ensure t
+  :custom
+  (flycheck-pos-tip-mode t)
+  )
 (use-package yasnippet
   :ensure t
   :blackout
@@ -539,6 +560,10 @@
              org-export-creator-string "},\n"
              "            pdflang={utf-8},\n"
              "           }\n"))))
+  )
+(use-package ox-pandoc
+  :ensure t
+  :after ox
   )
 
 

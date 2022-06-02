@@ -11,8 +11,9 @@ xsetroot -cursor_name left_ptr
 xset r rate 200 60
 
 # start some programs
-caffeine-indicator &
+#caffeine-indicator &
 #tint2 &
+ibus-daemon -d
 dropbox start
 
 # for EXWM
