@@ -1,0 +1,836 @@
+#+title: emacsの設定
+#+author: yam-k
+#+language: ja
+
+* これは何か
+emacsの設定。
+
+** emacs以外に使っているもの
+- roswell
+- rust-analyzer
+- pulseaudio-utils
+- git
+- tint2
+- caffeine
+- nm-tray
+- nautilus-dropbox
+- uim-skk
+
+* package
+** 初期化
+#+begin_src emacs-lisp
+  (package-initialize)
+#+end_src
+=package.el= を使えるようにする。
+
+** package取得元の追加
+#+begin_src emacs-lisp
+  (add-to-list 'package-archives
+               '("melpa" . "https://melpa.org/packages/"))
+
+  (add-to-list 'package-archive-priorities
+               '("melpa" . 10))
+#+end_src
+[[https://melpa.org/][MELPA]]の =package= を利用する。
+優先的に利用する。
+
+** package-installの改造
+#+begin_src emacs-lisp
+  (defun package-install-retry-advice (func &rest args)
+    "`package-install'がめげないようにするadvice.
+  適用するとpackage-installが失敗した場合に、`package-refresh-contents'を
+  評価した上で再挑戦するようになる。"
+    (condition-case err
+        (apply func args)
+      (error (progn (package-refresh-contents)
+                    (apply func args)))))
+  (advice-add #'package-install :around #'package-install-retry-advice)
+#+end_src
+設定を追加した時に、 ~package-install~ がパッケージを適切にインストール
+できるようにする。
+特に[[https://melpa.org/][MELPA]]は昨日と今日でパッケージが違ったりするので、
+~package-archive-contents~ を常に新しくしておく。
+
+* 表示
+** display-line-numbers
+#+begin_src emacs-lisp
+  (setopt display-line-numbers t)
+  (setopt display-line-numbers-width 4)
+
+  (define-key global-map
+              (kbd "C-c t l") #'display-line-numbers-mode)
+#+end_src
+編集領域の左端に論理行番号を表示
+
+** fill-colmn
+#+begin_src emacs-lisp
+  (setopt fill-column 72)
+  (setopt global-display-fill-column-indicator-mode t)
+
+  (define-key global-map
+              (kbd "C-c t l") #'global-display-fill-column-indicator-mode)
+#+end_src
+1行を72文字とし、73文字目に線を引く。
+
+** whitespace
+#+begin_src emacs-lisp
+  (setopt whitespace-style '(face
+                             trailing
+                             tabs
+                             tab-mark
+                             empty
+                             ;; spaces
+                             ;; space-mark
+                             newline
+                             newline-mark))
+  ;; (setopt whitespace-display-mappings '((newline-mark ?\n [?| ?\n])
+  ;;                                       (space-mark ?　 [?＿])
+  ;;                                       (space-mark ?  [?.])
+  ;;                                       (space-mark ?  [?_])
+  ;;                                       (tab-mark ?\t [?» ?\t])))
+
+  (setopt global-whitespace-mode t)
+
+  (define-key global-map
+              (kbd "C-c t w") #'global-whitespace-mode)
+#+end_src
+非表示文字の表示。
+
+** paren
+#+begin_src emacs-lisp
+  (setopt show-paren-style 'expression)
+
+  (setopt show-paren-mode t)
+#+end_src
+対応する括弧を強調表示。
+
+** popper
+#+begin_src emacs-lisp
+  (package-install 'popper)
+
+  (setopt popper-reference-buffers '(messages-buffer-mode
+                                     ;; special-mode
+                                     ;; emacs-lisp-compilation-mode
+                                     help-mode
+                                     helpful-mode
+                                     slime-repl-mode
+                                     inferior-emacs-lisp-mode
+                                     inferior-python-mode
+                                     comint-mode
+                                     compilation-mode
+                                     ))
+
+  (setopt popper-mode t)
+  (setopt popper-echo-mode t)
+
+  (define-key global-map
+              (kbd "C-@") #'popper-toggle)
+  (define-key global-map
+              (kbd "M-@") #'popper-cycle)
+  (define-key global-map
+              (kbd "C-M-@") #'popper-toggle-type)
+#+end_src
+特定のバッファをポップアップウィンドウっぽくする。
+
+* ミニバッファ
+** fido-vertical-mode
+#+begin_src emacs-lisp
+  (setopt fido-vertical-mode t)
+#+end_src
+ミニバッファの補完UI。
+
+** marginalia
+#+begin_src emacs-lisp
+  (package-install 'marginalia)
+  (setopt marginalia-mode t)
+#+end_src
+ミニバッファでの補完時に追加情報を余白に表示。
+
+* 日本語入力
+#+begin_src emacs-lisp
+  (setopt skk-user-directory tmp-dir)
+  (setopt skk-get-jisyo-directory (expand-file-name "skk-jisyo"
+                                                    user-emacs-directory))
+#+end_src
+=ddskk= を有効にする前に設定しておかないと、なんか上手くいかない変数。
+
+#+begin_src emacs-lisp
+  (package-install 'ddskk)
+  ;; (unless (file-exists-p skk-get-jisyo-directory)
+  ;;   (skk-get skk-get-jisyo-directory))
+#+end_src
+=ddskk= と辞書のインストール。
+emacsを使う理由その1。
+
+#+begin_src emacs-lisp
+  (setopt default-input-method "japanese-skk")
+  (setopt skk-use-jisx0201-input-method t)
+  (setopt skk-search-katakana 'jisx0201-kana)
+  (setopt skk-delete-okuri-when-quit t)
+#+end_src
+=C-\= でskkを起動したり、半角カナを使えるようにしたり。
+
+#+begin_src emacs-lisp
+  (setopt skk-jisyo-code 'utf-8)
+  (setopt skk-large-jisyo (expand-file-name "SKK-JISYO.L.utf8"
+                                            skk-get-jisyo-directory))
+  (setopt skk-itaiji-jisyo (expand-file-name "SKK-JISYO.itaiji.utf8"
+                                             skk-get-jisyo-directory))
+  (setopt skk-extra-jisyo-file-list
+          `(,(expand-file-name "SKK-JISYO.emoji.utf8"
+                               skk-get-jisyo-directory)))
+#+end_src
+辞書の設定。
+
+#+begin_src emacs-lisp
+  (setopt skk-show-annotation t)
+  (setopt skk-show-annotation-delay 0)
+  (setopt skk-show-candidates-always-pop-to-buffer t)
+#+end_src
+候補の表示の仕方。アノテーションとか。
+
+#+begin_src emacs-lisp
+  (setopt skk-latin-mode-string "[_A]")
+  (setopt skk-hiragana-mode-string "[あ]")
+  (setopt skk-katakana-mode-string "[ア]")
+  (setopt skk-jisx0208-latin-mode-string "[Ａ]")
+  (setopt skk-jisx0201-mode-string "[_ｱ]")
+  (setopt skk-abbrev-mode-string "[aA]")
+#+end_src
+入力モードに応じたモードラインの表示。
+
+#+begin_src emacs-lisp
+  ;; (setopt skk-isearch-mode-enable 'always)
+  ;; (setopt skk-isearch-start-mode 'latin)
+
+  ;; (with-eval-after-load 'isearch
+  ;;   (add-hook isearch-mode-hook #'skk-isearch-mode-setup)
+  ;;   (add-hook isearch-mode-end-hook #'skk-isearch-mode-cleanup)
+  ;;   )
+#+end_src
+=isearch-mode= でもskkを使う設定。
+
+* 入力支援
+** corfu/cape
+#+begin_src emacs-lisp
+  (package-install 'corfu)
+
+  (setopt corfu-auto t)
+  (setopt corfu-cycle t)
+  (setopt corfu-quit-no-match t)
+
+  (setopt global-corfu-mode t)
+
+  (with-eval-after-load 'corfu
+    (define-key corfu-map
+                (kbd "SPC") #'corfu-insert-separator)
+    )
+#+end_src
+カーソル位置での補完UI。
+
+#+begin_src emacs-lisp
+  (package-install 'cape)
+
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-keyword)
+  (add-to-list 'completion-at-point-functions #'cape-symbol)
+
+  (define-key global-map
+              (kbd "C-c c p") #'completion-at-point)
+  (define-key global-map
+              (kbd "C-c c t") #'complete-tag)
+  (define-key global-map
+              (kbd "C-c c d") #'cape-dabbrev)
+  (define-key global-map
+              (kbd "C-c c h") #'cape-history)
+  (define-key global-map
+              (kbd "C-c c f") #'cape-file)
+  (define-key global-map
+              (kbd "C-c c k") #'cape-keyword)
+  (define-key global-map
+              (kbd "C-c c s") #'cape-symbol)
+  (define-key global-map
+              (kbd "C-c c a") #'cape-abbrev)
+  (define-key global-map
+              (kbd "C-c c i") #'cape-ispell)
+  (define-key global-map
+              (kbd "C-c c l") #'cape-line)
+  (define-key global-map
+              (kbd "C-c c w") #'cape-dict)
+#+end_src
+=corfu= の補完候補を拡張する。
+
+#+begin_src emacs-lisp
+  (package-install 'kind-icon)
+
+  (with-eval-after-load 'corfu
+    (setopt kind-icon-default-face 'corfu-default)
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter)
+    )
+#+end_src
+補完候補にアイコンを表示。
+
+** which-key
+#+begin_src emacs-lisp
+  (package-install 'which-key)
+  (setopt which-key-mode t)
+
+  (add-to-list 'which-key-replacement-alist
+               '(("\\`C-c c\\'" . nil) . (nil . "corfu/cape")))
+  (add-to-list 'which-key-replacement-alist
+               '(("\\`C-c d\\'" . nil) . (nil . "develop")))
+  (add-to-list 'which-key-replacement-alist
+               '(("\\`C-c m\\'" . nil) . (nil . "magit")))
+  (add-to-list 'which-key-replacement-alist
+               '(("\\`C-c o\\'" . nil) . (nil . "org")))
+  (add-to-list 'which-key-replacement-alist
+               '(("\\`C-c C-o\\'" . nil) . (nil . "outline")))
+  (add-to-list 'which-key-replacement-alist
+               '(("\\`C-c t\\'" . nil) . (nil . "toggle")))
+#+end_src
+設定されているキーバインドの候補を表示。
+
+* 編集モード
+** org
+*** org
+#+begin_src emacs-lisp
+  (setopt org-directory (expand-file-name "~/Dropbox/Documents/org/"))
+  (setopt org-todo-keywords '((sequence "TODO(t!)"
+                                        "WAIT(w@)"
+                                        "SOMEDAY(s)"
+                                        "|"
+                                        "DONE(d!)"
+                                        "ABORT(a@)")))
+  (setopt org-structure-template-alist '(("c" . "center")
+                                         ("cl" . "src common-lisp")
+                                         ("C" . "comment")
+                                         ("e" . "example")
+                                         ("el" . "src emacs-lisp")
+                                         ("en" . "src emacs-lisp :tangle no")
+                                         ("ey" . "src emacs-lisp :tangle yes")
+                                         ("E" . "export")
+                                         ("Ea" . "export ascii")
+                                         ("Eh" . "export html")
+                                         ("El" . "export latex")
+                                         ("q" . "quote")
+                                         ("s" . "src")
+                                         ("v" . "verse")))
+
+  (define-key global-map
+              (kbd "C-c o l") #'org-store-link)
+
+  (add-to-list 'auto-mode-alist
+               `(,(rx ".org" string-end) . org-mode))
+  (add-to-list 'auto-mode-alist
+               `(,(rx ".txt" string-end) . org-mode))
+#+end_src
+基本設定。TODOの状態とかコードブロック挿入のショートカットとか。
+emacsを使う理由その2。
+
+*** org-capture
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org-capture
+    (add-to-list 'org-capture-templates
+                 '("m" "メモ"
+                   entry (file "capture.org")
+                   "* %?\n%T\n%i"
+                   :empty-lines-before 1)
+                 t)
+    (add-to-list 'org-capture-templates
+                 '("s" "スケジュール"
+                   entry (file "capture.org")
+                   "* %?\n予定: %^t\n%i"
+                   :empty-lines-before 1)
+                 t)
+    (add-to-list 'org-capture-templates
+                 '("t" "やること"
+                   entry (file "capture.org")
+                   "* TODO %?\n%i"
+                   :empty-lines-before 1)
+                 t)
+    (add-to-list 'org-capture-templates
+                 '("T" "やること(期限付き)"
+                   entry (file "capture.org")
+                   "* TODO %?\n締切: %^t\n%i"
+                   :empty-lines-before 1)
+                 t)
+    )
+
+  (define-key global-map
+              (kbd "C-c o c") #'org-capture)
+#+end_src
+キャプチャーテンプレートを設定。
+
+*** org-agenda
+#+begin_src emacs-lisp
+  (add-to-list 'org-agenda-files
+               (expand-file-name "capture.org" org-directory))
+
+  (define-key global-map
+              (kbd "C-c o a") #'org-agenda)
+#+end_src
+=org-agenda= で処理するファイルを設定。
+
+*** org-export
+#+begin_src emacs-lisp
+  (setopt org-export-default-language "ja")
+  (setopt org-export-backends '(ascii
+                                html
+                                icalendar
+                                latex
+                                odt
+                                texinfo))
+#+end_src
+=org-export= の基本設定。
+
+#+begin_src emacs-lisp
+  (package-install 'htmlize)
+#+end_src
+=org-export= でHTMLを出力するのに必要。
+
+#+begin_src emacs-lisp
+  (package-install 'ox-pandoc)
+  (with-eval-after-load 'ox
+    (require 'ox-pandoc))
+#+end_src
+=org-export= で =pandoc= を利用できるようにする。
+
+*** ox-latex
+#+begin_src emacs-lisp
+  (setopt org-latex-compiler "lualatex")
+  (setopt org-latex-text-markup-alist '((bold . "\\textbf{%s}")
+                                        (code . verb)
+                                        (italic . "\\it{%s}")
+                                        (strike-through . "\\sout{%s}")
+                                        (underline . "\\uline{%s}")
+                                        (verbatim . protectedtexttt)))
+#+end_src
+=org-export= でpdfを作る時にlatexを経由するので設定。
+
+*** org-latex-class
+#+begin_src emacs-lisp
+  (with-eval-after-load 'ox-latex
+    (setopt org-latex-hyperref-template
+            (concat
+             "\\hypersetup{pdfauthor={%a},\n"
+             "            pdftitle={%t},\n"
+             "            pdfkeywords={%k},\n"
+             "            pdfsubject={%d},\n"
+             "            pdfcreator={%c},\n"
+             "            pdflang={%L},\n"
+             "            setpagesize=false,\n"
+             "            colorlinks=true,\n"
+             "            linkcolor=blue}\n\n\n"))
+
+    (add-to-list 'org-latex-classes
+                 `("article"
+                   ,(concat "\\documentclass[paper=a4,article]{jlreq}"
+                            "[default-packages]\n")
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+    (add-to-list 'org-latex-classes
+                 `("book"
+                   ,(concat "\\documentclass[pape=a6,book,tate]{jlreq}\n"
+                            "[default-packages]\n"
+                            "\\patchcmd{\\addcontentsline}\n"
+                            "         {\\thepage}\n"
+                            "         {\\tatechuyoko{\\thepage}}{}{}")
+                   ;; ("\\part{%s}" . "\\part*{%s}")
+                   ("\\chapter{%s}" . "\\chapter*{%s}")
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+    (add-to-list 'org-latex-classes
+                 `("book-b6"
+                   ,(concat "\\documentclass[pape=b6,book,tate,twocolumn]{jlreq}\n"
+                            "[default-packages]\n"
+                            "\\patchcmd{\\addcontentsline}\n"
+                            "         {\\thepage}\n"
+                            "         {\\tatechuyoko{\\thepage}}{}{}")
+                   ;; ("\\part{%s}" . "\\part*{%s}")
+                   ("\\chapter{%s}" . "\\chapter*{%s}")
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+    (setopt org-latex-default-class "article")
+    )
+#+end_src
+横書き用と縦書き用の =org-latex= クラスを作る。
+もうちょっと上手いやりかたがありそうな気はしているのと、
+縦書きの時に =hyperref= が邪魔をするので、縦書きの時だけOFFにしたい。
+
+** outline
+#+begin_src emacs-lisp
+  (package-install 'outline-magic)
+
+  (setopt outline-minor-mode-prefix (kbd "C-c C-o"))
+
+  (add-hook 'emacs-lisp-mode-hook #'outline-minor-mode)
+
+  (with-eval-after-load 'outline
+    (define-key outline-minor-mode-map
+                (kbd "<tab>") #'outline-cycle)
+    (define-key outline-minor-mode-map
+                (kbd "C-u TAB") #'outline-cycle-buffer)
+    )
+#+end_src
+=outline-mode= でも =org-mode= な伸縮操作ができるようにする。
+
+** ssh-config
+#+begin_src emacs-lisp
+  (package-install 'ssh-config-mode)
+#+end_src
+ssh-config編集用。
+
+** rust
+#+begin_src emacs-lisp
+  (package-install 'rust-mode)
+  (add-to-list 'auto-mode-alist
+               `(,(rx ".rs" string-end) . rust-mode))
+
+  (package-install 'toml-mode)
+#+end_src
+rust編集用。
+
+* 開発環境
+** slime
+#+begin_src emacs-lisp
+  (package-install 'slime)
+
+  (setopt slime-lisp-implementations '((ros ("ros" "-Q" "run"))))
+  (setopt slime-kill-without-query-p t)
+  (setopt common-lisp-style-default "sbcl")
+  (setopt slime-repl-history-file
+          (expand-file-name ".slime-history.eld" tmp-dir))
+
+  (define-key global-map (kbd "C-c d s") #'slime)
+
+  (with-eval-after-load 'slime
+    (slime-setup '(slime-fancy))
+    )
+#+end_src
+Common Lisp用REPL。
+emacsを使う理由その3。
+
+** ielm
+#+begin_src emacs-lisp
+  (define-key global-map
+              (kbd "C-c d i") #'ielm)
+#+end_src
+Emacs Lisp用REPL。
+
+** python
+#+begin_src emacs-lisp
+  (define-key global-map
+              (kbd "C-c d p") #'run-python)
+#+end_src
+Python用REPL。
+
+** lsp
+#+begin_src emacs-lisp
+  (add-hook 'rust-mode-hook #'eglot-ensure)
+
+  (with-eval-after-load 'flymake
+    (define-key flymake-mode-map
+                (kbd "M-n") #'flymake-goto-next-error)
+    (define-key flymake-mode-map
+                (kbd  "M-p") #'flymake-goto-prev-error)
+    )
+#+end_src
+今時の言語用IDE。
+
+* その他のツール
+** システム音量の操作
+#+begin_src emacs-lisp
+  (defun audio-raise-volume ()
+    "システムの音量を上げる.
+  pulseaudio-utilsが必要。"
+    (interactive)
+    (call-process "pactl" nil nil nil
+                  "set-sink-volume" "@DEFAULT_SINK@" "+5%"))
+  (defun audio-lower-volume ()
+    "システムの音量を下げる.
+  pulseaudio-utilsが必要。"
+    (interactive)
+    (call-process "pactl" nil nil nil
+                  "set-sink-volume" "@DEFAULT_SINK@" "-5%"))
+  (defun audio-mute ()
+    "システムの音量のミュートをトグルする.
+  pulseaudio-utilsが必要。"
+    (interactive)
+    (call-process "pactl" nil nil nil
+                  "set-sink-mute" "@DEFAULT_SINK@" "toggle"))
+
+  (define-key global-map
+              (kbd "<XF86AudioRaiseVolume>") #'audio-raise-volume)
+  (define-key global-map
+              (kbd "<XF86AudioLowerVolume>") #'audio-lower-volume)
+  (define-key global-map
+              (kbd "<XF86AudioMute>") #'audio-mute)
+#+end_src
+emacsからシステム音量を操作する設定。
+
+** dired
+#+begin_src emacs-lisp
+  (setopt dired-dwim-target t)
+#+end_src
+=dired= を2画面ファイラっぽく。
+
+** helpful
+#+begin_src emacs-lisp
+  (package-install 'helpful)
+
+  (advice-add #'describe-function :override #'helpful-callable)
+  (advice-add #'describe-variable :override #'helpful-variable)
+  (advice-add #'describe-key :override #'helpful-key)
+  (advice-add #'describe-command :override #'helpful-command)
+
+  (define-key global-map (kbd "C-c C-d") #'helpful-at-point)
+#+end_src
+リッチなヘルプ
+
+** magit
+#+begin_src emacs-lisp
+  (package-install 'magit)
+
+  (define-key global-map
+              (kbd "C-c M-g") nil)
+  (define-key global-map
+              (kbd "C-c m d") #'magit-dispatch)
+  (define-key global-map
+              (kbd "C-c m i") #'magit-init)
+  (define-key global-map
+              (kbd "C-c m s") #'magit-status)
+#+end_src
+git操作。
+
+** blackout
+#+begin_src emacs-lisp
+  (package-install 'blackout)
+
+  (blackout 'eldoc-mode)
+  (blackout 'global-eldoc-mode)
+  (blackout 'whitespace-mode)
+  (blackout 'global-whitespace-mode)
+  (blackout 'outline-minor-mode)
+  (blackout 'which-key-mode)
+#+end_src
+モードラインから不要なモード表示を消す。
+
+** auto-package-update
+#+begin_src emacs-lisp
+  (package-install 'auto-package-update)
+
+  (setopt auto-package-update-last-update-day-filename
+          (expand-file-name "last-package-update-day" tmp-dir))
+  (setopt auto-package-update-delete-old-versions t)
+  (setopt auto-package-update-hide-results t)
+
+  (auto-package-update-maybe)
+#+end_src
+パッケージを自動更新。
+
+* ウィンドウマネージャ
+** exwm
+#+begin_src emacs-lisp
+  (package-install 'exwm)
+#+end_src
+変態タイル型ウィンドウマネージャ。
+emacsを使う理由その4。
+
+#+begin_src emacs-lisp
+  ;; (add-hook 'exwm-update-class-hook
+  ;;           (lambda ()
+  ;;             (exwm-workspace-rename-buffer exwm-class-name)))
+#+end_src
+バッファ名をexwmのクラス名にする設定。
+exwm-xに飽きたらコメントを外す。
+
+#+begin_src emacs-lisp
+  (setq exwm-input-global-keys
+        `(
+          (,(kbd "s-r") . exwm-reset)
+          (,(kbd "s-w") . exwm-workspace-switch)
+          ))
+
+  (setq exwm-input-simulation-keys
+        `(
+          (,(kbd "C-b") . [left])
+          (,(kbd "C-f") . [right])
+          (,(kbd "C-p") . [up])
+          (,(kbd "C-n") . [down])
+          (,(kbd "C-a") . [home])
+          (,(kbd "C-e") . [end])
+          (,(kbd "M-v") . [prior])
+          (,(kbd "C-v") . [next])
+          (,(kbd "C-h") . [backspace])
+          (,(kbd "C-d") . [delete])
+          (,(kbd "C-k") . [S-end delete])
+          ))
+
+  (with-eval-after-load 'exwm
+    (push 'XF86AudioRaiseVolume exwm-input-prefix-keys)
+    (push 'XF86AudioLowerVolume exwm-input-prefix-keys)
+    (push 'XF86AudioMute exwm-input-prefix-keys)
+    )
+#+end_src
+キーバインドの設定。
+特にemacs外のアプリケーションでも使いたいものとか。
+
+#+begin_src emacs-lisp
+  (setopt exwm-floating-border-width 3)
+  (setopt exwm-floating-border-color "#ffbbee")
+#+end_src
+フローティングウィンドウの外枠
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'exwm
+    (setopt menu-bar-mode nil)
+    (setopt tool-bar-mode nil)
+    (setopt scroll-bar-mode nil)
+    (setopt fringe-mode 1)
+    (setopt tab-bar-show nil)
+    )
+#+end_src
+表示領域を可能な限り大きくする。
+
+#+begin_src emacs-lisp
+  ;; (with-eval-after-load 'exwm
+  ;;   (setopt display-time-format "[%F %R]")
+  ;;   (setopt display-time-mode t)
+  ;;   )
+#+end_src
+モードラインに時刻を表示。
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'exwm
+    (require 'exwm-systemtray)
+    (exwm-systemtray-enable)
+    )
+#+end_src
+システムトレイをミニバッファ右端に表示。
+
+** なんか色々トグル
+#+begin_src emacs-lisp
+  (define-key global-map
+              (kbd "C-c t M") #'menu-bar-mode)
+  (define-key global-map
+              (kbd "C-c t T") #'tool-bar-mode)
+  (define-key global-map
+              (kbd "C-c t S") #'scroll-bar-mode)
+
+  (defun fringe-minimize ()
+    "編集領域両側のfringeを最小化(size=1)したり戻したり(size=8)."
+    (interactive)
+    (cond ((null fringe-mode) (setopt fringe-mode 1))
+          ((= fringe-mode 1) (setopt fringe-mode 8))
+          (t (setopt fringe-mode 1))))
+  (define-key global-map
+              (kbd "C-c t F") #'fringe-minimize)
+
+  (defun tab-bar-show ()
+    "タブバーの表示をトグルする."
+    (interactive)
+    (cond ((null tab-bar-show) (setopt tab-bar-show t))
+          (t (setopt tab-bar-show nil))))
+  (define-key global-map
+              (kbd "C-c t C-t") #'tab-bar-show)
+
+#+end_src
+メニューバーとかを必要に応じて表示できるようにしておく。
+
+** exwm-x
+#+begin_src emacs-lisp
+  (package-install 'exwm-x)
+#+end_src
+素の =exwm= だと使い難いので、もう少しユーザフレンドリな皮を被せる。
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'exwm
+    (require 'exwm-x)
+
+    (when (functionp 'global-tab-line-mode)
+      (setopt global-tab-line-mode nil))
+
+    (when (functionp 'tab-bar-mode)
+      (setopt tab-line-mode nil))
+
+    (setopt use-dialog-box nil)
+
+    (add-hook 'exwm-update-class-hook #'exwmx-grocery--rename-exwm-buffer)
+    (add-hook 'exwm-update-title-hook #'exwmx-grocery--rename-exwm-buffer)
+
+    (add-hook 'exwm-manage-finish-hook #'exwmx-grocery--manage-finish-function)
+
+    (exwmx-floating-smart-hide)
+
+    (exwmx-button-enable)
+
+    (define-key global-map (kbd "C-t") nil)
+    (push ?\C-t exwm-input-prefix-keys)
+
+    (exwmx-input-set-key (kbd "C-t ;") #'exwmx-dmenu)
+    (exwmx-input-set-key (kbd "C-t :") #'exwmx-appmenu-simple)
+    (exwmx-input-set-key (kbd "C-t C-e") #'exwmx-sendstring)
+    (exwmx-input-set-key (kbd "C-t C-r") #'exwmx-appconfig)
+
+    (exwmx-input-set-key (kbd "C-c y") #'exwmx-sendstring-from-kill-ring)
+
+    (exwmx-input-set-key (kbd "C-t C-t") #'exwmx-button-toggle-keyboard)
+
+    (push ?\C-q exwm-input-prefix-keys)
+    (define-key exwm-mode-map [?\C-q] #'exwm-input-send-next-key)
+
+    (require 'exwm-xim)
+    (push ?\C-\\ exwm-input-prefix-keys)
+
+    ;; (if (equal (getenv "XMODIFIERS") "@im=exwm-xim")
+    ;;     (exwm-xim-enable)
+    ;;   (message "EXWM-X: Do not enable exwm-xim, for environment XMODIFIERS is set incorrect."))
+
+    (with-eval-after-load 'switch-window
+      (setq switch-window-input-style 'minibuffer)
+      (define-key exwm-mode-map (kbd "C-x o") #'switch-window)
+      (define-key exwm-mode-map (kbd "C-x 1") #'switch-window-then-maximize)
+      (define-key exwm-mode-map (kbd "C-x 2") #'switch-window-then-split-below)
+      (define-key exwm-mode-map (kbd "C-x 3") #'switch-window-then-split-right)
+      (define-key exwm-mode-map (kbd "C-x 0") #'switch-window-then-delete)
+      )
+
+    (define-key exwm-mode-map (kbd "C-c C-t C-f") #'exwmx-floating-toggle-floating)
+    )
+#+end_src
+とりあえずデフォルトの設定のコピペ。
+おいおい整理する予定。
+
+** exwm(-x)の起動
+ウィンドマネージャの起動用に、以下の =.xinitrc= に実行権限を付与して、
+=$HOME= に置いておく。
+#+begin_src bash :tangle no
+  host +SI:localuser:$USER
+  export _JAVA_AWT_WM_NONREPARENTING=1
+  xsetroot -cursor_name left_ptr
+  # 以下のコメントを外すと、キーリピートがめっちゃ早くなる。
+  #xset r rate 200 60
+
+  tint2 &
+  caffeine-indicator &
+  nm-tray &
+  dropbox start
+  emacs -f exwm-enable
+#+end_src
+
+* 片付け
+#+begin_src emacs-lisp
+  (advice-remove #'package-install #'package-install-retry-advice)
+#+end_src
+[[*package-installの改造][package-installの改造]]で適用した =advice= を外す。

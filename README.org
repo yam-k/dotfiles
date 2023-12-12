@@ -1,0 +1,6 @@
+#+title: README
+#+author: yam-k
+#+language: ja
+
+普段使いのlinuxの設定。
+主にemacs。
