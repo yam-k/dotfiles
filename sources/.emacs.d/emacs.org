@@ -6,6 +6,7 @@
 emacsの設定。
 
 ** emacs以外に使っているもの
+- texlive-full
 - roswell
 - rust-analyzer
 - pulseaudio-utils
@@ -551,31 +552,6 @@ Python用REPL。
 * その他のツール
 ** システム音量の操作
 #+begin_src emacs-lisp
-  (defun audio-raise-volume ()
-    "システムの音量を上げる.
-  pulseaudio-utilsが必要。"
-    (interactive)
-    (call-process "pactl" nil nil nil
-                  "set-sink-volume" "@DEFAULT_SINK@" "+5%"))
-  (defun audio-lower-volume ()
-    "システムの音量を下げる.
-  pulseaudio-utilsが必要。"
-    (interactive)
-    (call-process "pactl" nil nil nil
-                  "set-sink-volume" "@DEFAULT_SINK@" "-5%"))
-  (defun audio-mute ()
-    "システムの音量のミュートをトグルする.
-  pulseaudio-utilsが必要。"
-    (interactive)
-    (call-process "pactl" nil nil nil
-                  "set-sink-mute" "@DEFAULT_SINK@" "toggle"))
-
-  (define-key global-map
-              (kbd "<XF86AudioRaiseVolume>") #'audio-raise-volume)
-  (define-key global-map
-              (kbd "<XF86AudioLowerVolume>") #'audio-lower-volume)
-  (define-key global-map
-              (kbd "<XF86AudioMute>") #'audio-mute)
 #+end_src
 emacsからシステム音量を操作する設定。
 
@@ -642,7 +618,9 @@ git操作。
 * ウィンドウマネージャ
 ** exwm
 #+begin_src emacs-lisp
-  (package-install 'exwm)
+  (if (eq system-type 'gnu/linux)
+      (package-install 'exwm)
+    )
 #+end_src
 変態タイル型ウィンドウマネージャ。
 emacsを使う理由その4。
@@ -676,19 +654,46 @@ exwm-xに飽きたらコメントを外す。
           (,(kbd "C-d") . [delete])
           (,(kbd "C-k") . [S-end delete])
           ))
+#+end_src
+キーバインドの設定。
 
+#+begin_src emacs-lisp
   (with-eval-after-load 'exwm
+    (defun audio-raise-volume ()
+      "システムの音量を上げる.
+  pulseaudio-utilsが必要。"
+      (interactive)
+      (call-process "pactl" nil nil nil
+                    "set-sink-volume" "@DEFAULT_SINK@" "+5%"))
+    (defun audio-lower-volume ()
+      "システムの音量を下げる.
+  pulseaudio-utilsが必要。"
+      (interactive)
+      (call-process "pactl" nil nil nil
+                    "set-sink-volume" "@DEFAULT_SINK@" "-5%"))
+    (defun audio-mute ()
+      "システムの音量のミュートをトグルする.
+  pulseaudio-utilsが必要。"
+      (interactive)
+      (call-process "pactl" nil nil nil
+                    "set-sink-mute" "@DEFAULT_SINK@" "toggle"))
+
+    (define-key global-map
+                (kbd "<XF86AudioRaiseVolume>") #'audio-raise-volume)
+    (define-key global-map
+                (kbd "<XF86AudioLowerVolume>") #'audio-lower-volume)
+    (define-key global-map
+                (kbd "<XF86AudioMute>") #'audio-mute)
     (push 'XF86AudioRaiseVolume exwm-input-prefix-keys)
     (push 'XF86AudioLowerVolume exwm-input-prefix-keys)
     (push 'XF86AudioMute exwm-input-prefix-keys)
     )
 #+end_src
-キーバインドの設定。
-特にemacs外のアプリケーションでも使いたいものとか。
+音量のコントロール。
 
 #+begin_src emacs-lisp
-  (setopt exwm-floating-border-width 3)
-  (setopt exwm-floating-border-color "#ffbbee")
+  (setq exwm-floating-border-width 3)
+  (setq exwm-floating-border-color "#ffbbee")
 #+end_src
 フローティングウィンドウの外枠
 
@@ -750,7 +755,9 @@ exwm-xに飽きたらコメントを外す。
 
 ** exwm-x
 #+begin_src emacs-lisp
-  (package-install 'exwm-x)
+  (with-eval-after-load 'exwm
+    (package-install 'exwm-x)
+    )
 #+end_src
 素の =exwm= だと使い難いので、もう少しユーザフレンドリな皮を被せる。
 

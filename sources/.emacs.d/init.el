@@ -29,7 +29,7 @@
 (setopt scroll-bar-mode 'right)
 
 ;;;; 背景透過
-;; (add-to-list 'default-frame-alist '(alpha . 90))
+;; (add-to-list 'default-frame-alist '(alpha . 50))
 
 ;;;; スタートアップ画面
 (setopt inhibit-startup-message t)
@@ -86,8 +86,6 @@
 ;;;; 操作履歴の記録
 (setopt savehist-file (expand-file-name "history" tmp-dir))
 (setopt savehist-mode t)
-
-;;;; 音量制御
 
 ;; 設定本体のorgファイルの読み込み。
 ;; .emacs.d直下をごちゃごちゃさせたくないので、ごちゃごちゃやってる。
