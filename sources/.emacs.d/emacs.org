@@ -515,12 +515,48 @@ rust編集用。
 
   (define-key global-map (kbd "C-c d s") #'slime)
 
-  (with-eval-after-load 'slime
-    (slime-setup '(slime-fancy))
-    )
+  ;; (with-eval-after-load 'slime
+  ;;   (slime-setup '(slime-fancy))
+  ;;   )
 #+end_src
 Common Lisp用REPL。
 emacsを使う理由その3。
+
+** slime-cape
+#+begin_src emacs-lisp
+  (package-install 'slime-company)
+#+end_src
+
+#+begin_src emacs-lisp :tangle (expand-file-name "slime-cape.el" local-lisp-dir)
+  (require 'slime)
+  (require 'slime-company)
+  (require 'cape)
+
+  (defvar cape-slime-backend (cape-company-to-capf #'company-slime))
+
+  (define-slime-contrib slime-cape
+    (:swank-dependencies swank-arglists)
+    (:on-load
+     (dolist (h '(slime-mode-hook slime-repl-mode-hook sldb-mode-hook))
+       (add-hook h 'slime-cape-maybe-enable)))
+    (:on-unload
+     (dolist (h '(slime-mode-hook slime-repl-mode-hook sldb-mode-hook))
+       (remove-hook h 'slime-cape-maybe-enable))
+     (delete cape-slime-backend completion-at-point-functions)))
+
+  (defun slime-cape-maybe-enable ()
+    (when (slime-company-active-p)
+      (add-to-list 'completion-at-point-functions cape-slime-backend)))
+
+  (provide 'slime-cape)
+#+end_src
+
+#+begin_src emacs-lisp
+  (add-hook 'slime-mode #'slime-cape)
+
+  (with-eval-after-load 'slime
+    (slime-setup '(slime-fancy slime-cape)))
+#+end_src
 
 ** ielm
 #+begin_src emacs-lisp

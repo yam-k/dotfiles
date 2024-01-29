@@ -87,6 +87,14 @@
 (setopt savehist-file (expand-file-name "history" tmp-dir))
 (setopt savehist-mode t)
 
+;;;; ローカルなemacs-lispの保存ディレクトリ
+(defconst local-lisp-dir
+  (expand-file-name "site-lisp" user-emacs-directory)
+  "ローカルなelispを置いておくディレクトリ.")
+(unless (file-exists-p local-lisp-dir)
+  (make-directory local-lisp-dir))
+(add-to-list 'load-path local-lisp-dir)
+
 ;; 設定本体のorgファイルの読み込み。
 ;; .emacs.d直下をごちゃごちゃさせたくないので、ごちゃごちゃやってる。
 (let* ((source-file (expand-file-name "emacs.org" user-emacs-directory))
