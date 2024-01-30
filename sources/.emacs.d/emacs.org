@@ -221,6 +221,7 @@ emacsを使う理由その1。
   (setopt corfu-quit-no-match t)
 
   (setopt global-corfu-mode t)
+  (setopt corfu-popupinfo-mode t)
 
   (with-eval-after-load 'corfu
     (define-key corfu-map
